@@ -102,7 +102,7 @@ label_res <- function(deseq2_res, padj_threshold) {
   return(deseq2_res)
 }
 labeled_results <- label_res(results$results, .10)
-
+labeled_results
 #' Function to plot the unadjusted p-values as a histogram
 #'
 #' @param labeled_results (tibble): Tibble with DESeq2 results and one additional
@@ -200,8 +200,6 @@ volcano_plot <- plot_volcano(labeled_results)
 volcano_plot
 
 
-#SEAN LEFT OFF HERE
-
 
 #' Function to generate a named vector ranked by log2FC descending
 #'
@@ -217,8 +215,19 @@ volcano_plot
 #' @examples rnk_list <- make_ranked_log2fc(labeled_results, 'data/id2gene.txt')
 
 make_ranked_log2fc <- function(labeled_results, id2gene_path) {
-    return(NULL)
+  gene_table <- read_delim(id2gene_path, delim = "\t", col_names = c("ENSEMBL_ID","symbols")) %>%
+    right_join(labeled_results, by = c("ENSEMBL_ID" = "genes")) %>%
+    as.data.frame() %>%
+    dplyr::select(symbols, log2fc = log2FoldChange) %>%
+    filter(!is.na(log2fc)) %>%
+    arrange(desc(log2fc)) %>% 
+    deframe()
+  return(gene_table)
 }
+
+rnk_list <- make_ranked_log2fc(labeled_results, 'data/id2gene.txt')
+rnk_list
+
 
 #' Function to run fgsea with arguments for min and max gene set size
 #'
@@ -233,8 +242,20 @@ make_ranked_log2fc <- function(labeled_results, id2gene_path) {
 #'
 #' @examples fgsea_results <- run_fgsea('data/m2.cp.v2023.1.Mm.symbols.gmt', rnk_list, 15, 500)
 run_fgsea <- function(gmt_file_path, rnk_list, min_size, max_size) {
-    return(NULL)
+  pathways <- gmtPathways(gmt_file_path)
+  
+  results <- fgsea(
+    pathways = pathways,
+    stats    = rnk_list,
+    minSize  = min_size,  
+    maxSize  = max_size) %>%
+    as_tibble()
+  
+  return(results)
 }
+
+fgsea_results <- run_fgsea('data/m2.cp.v2023.1.Mm.symbols.gmt', rnk_list, 15, 500)
+fgsea_results
 
 #' Function to plot top ten positive NES and top ten negative NES pathways
 #' in a barchart
@@ -250,6 +271,26 @@ run_fgsea <- function(gmt_file_path, rnk_list, min_size, max_size) {
 #'
 #' @examples fgsea_plot <- top_pathways(fgsea_results, 10)
 top_pathways <- function(fgsea_results, num_paths){
-    return(NULL)
+  top_n <- fgsea_results %>%
+    arrange(desc(NES)) %>%
+    head(num_paths)
+  bottom_n <- fgsea_results %>%
+    arrange(NES) %>%
+    head(num_paths)
+  all_pathways_plot <- bind_rows(top_n, bottom_n) %>%
+    arrange(desc(NES)) %>% 
+    mutate(sig = case_when(padj <= 0.05 ~ "Significant", TRUE ~ "Not Significant")) %>%
+    ggplot(aes(x = pathway, y = NES)) +
+      geom_col() +
+      coord_flip() +
+    theme(axis.text.y = element_text(size = 4))
+  
+  return(all_pathways_plot)
 }
+
+fgsea_plot <- top_pathways(fgsea_results, 10)
+fgsea_plot
+
+
+
 
