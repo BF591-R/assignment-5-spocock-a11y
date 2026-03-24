@@ -286,7 +286,7 @@ top_pathways <- function(fgsea_results, num_paths){
     theme(axis.text.y = element_text(size = 4))
    
   return(all_pathways_plot)
-}
+} 
 
 fgsea_plot <- top_pathways(fgsea_results, 10)
 fgsea_plot
