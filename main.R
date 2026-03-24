@@ -284,7 +284,7 @@ top_pathways <- function(fgsea_results, num_paths){
       geom_col() +
       coord_flip() +
     theme(axis.text.y = element_text(size = 4))
-  
+   
   return(all_pathways_plot)
 }
 
